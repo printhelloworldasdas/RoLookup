@@ -258,18 +258,35 @@ function fmtNumber(n){
 }
 
 // Roblox's and Rolimons' public APIs generally don't send CORS headers
-// for arbitrary browser origins, so we try a direct fetch first and fall
-// back to a read-only CORS proxy if that fails.
+// for arbitrary browser origins, so we try a direct fetch first, then
+// fall back through several read-only CORS proxies until one works.
+const PROXIES = [
+  url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+  url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+  url => 'https://corsproxy.io/?url=' + encodeURIComponent(url),
+];
+
 async function proxyGet(url){
+  const errors = [];
+
   try{
     const r = await fetch(url, { headers: { 'Accept':'application/json' } });
     if (r.ok) return await r.json();
-  }catch(e){ /* fall through to proxy */ }
+    errors.push(`directo: HTTP ${r.status}`);
+  }catch(e){ errors.push(`directo: ${e.message}`); }
 
-  const proxied = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-  const r2 = await fetch(proxied);
-  if (!r2.ok) throw new Error('No se pudo contactar con la API.');
-  return await r2.json();
+  for (const build of PROXIES){
+    try{
+      const r = await fetch(build(url));
+      if (!r.ok){ errors.push(`proxy ${build(url).split('/')[2]}: HTTP ${r.status}`); continue; }
+      const text = await r.text();
+      try{
+        return JSON.parse(text);
+      }catch(e){ errors.push(`proxy ${build(url).split('/')[2]}: respuesta no es JSON`); continue; }
+    }catch(e){ errors.push(`proxy ${build(url).split('/')[2]}: ${e.message}`); }
+  }
+
+  throw new Error(errors.join(' | '));
 }
 const robloxGet = proxyGet;
 
@@ -337,9 +354,9 @@ async function lookup(userId){
   let userInfo;
   try{
     userInfo = await robloxGet(`https://users.roblox.com/v1/users/${userId}`);
-    if (userInfo.errors) throw new Error('not found');
+    if (userInfo.errors) throw new Error(userInfo.errors[0]?.message || 'cuenta no encontrada');
   }catch(e){
-    setStatus('No se encontró ninguna cuenta con ese ID, o la API de Roblox no respondió. Comprueba el ID e inténtalo de nuevo.', true);
+    setStatus(`No se pudo obtener el perfil. Detalle: <b>${(e.message||'error desconocido').replace(/</g,'&lt;')}</b>. Si el detalle menciona "proxy" o "directo" en todos los casos, puede que los proxies estén caídos ahora mismo — prueba de nuevo en un minuto.`, true);
     return;
   }
 
