@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Account Explorer — Roblox Lookup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue: #00a2ff;
+    --blue-dark: #0087d6;
+    --green: #57ba36;
+    --bg: #f2f4f5;
+    --card: #ffffff;
+    --line: #e3e6e8;
+    --text: #393b3d;
+    --text-dim: #6b6f72;
+    --text-faint: #9a9ea2;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Nunito', -apple-system, Segoe UI, sans-serif;
+    min-height:100vh;
+  }
+
+  /* top nav, roblox-style */
+  .navbar{
+    background:#ffffff;
+    border-bottom:1px solid var(--line);
+    padding:14px 24px;
+    display:flex;align-items:center;gap:10px;
+    position:sticky;top:0;z-index:5;
+  }
+  .navbar .logo{
+    width:30px;height:30px;background:var(--blue);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:16px;flex-shrink:0;
+  }
+  .navbar .wordmark{font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--text);}
+  .navbar .wordmark span{color:var(--blue);}
+  .navbar .tagline{font-size:12px;color:var(--text-faint);margin-left:2px;padding-left:10px;border-left:1px solid var(--line);}
+
+  .app{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
+
+  /* search card */
+  .search-card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:20px;margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .search-card label{
+    display:block;font-size:13px;font-weight:700;color:var(--text-dim);margin-bottom:8px;
+  }
+  .input-row{display:flex;gap:10px;}
+  .input-row input{
+    flex:1;min-width:0;padding:12px 14px;border:2px solid var(--line);border-radius:8px;
+    font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);outline:none;
+    transition:border-color .15s ease;background:#fafbfb;
+  }
+  .input-row input:focus{border-color:var(--blue);background:#fff;}
+  .input-row button{
+    background:var(--blue);color:#fff;border:none;border-radius:8px;
+    padding:0 22px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;
+    letter-spacing:.02em;cursor:pointer;transition:background .15s ease;
+    text-transform:uppercase;
+  }
+  .input-row button:hover{background:var(--blue-dark);}
+  .input-row button:disabled{opacity:.5;cursor:default;}
+  .hint{margin:10px 2px 0;font-size:12.5px;color:var(--text-faint);}
+  .hint b{color:var(--text-dim);}
+
+  /* status */
+  .status{
+    font-size:13.5px;padding:12px 16px;border-radius:8px;margin-bottom:16px;
+    background:#eaf6ff;color:var(--blue-dark);border:1px solid #cdeaff;
+    display:flex;align-items:center;gap:8px;
+  }
+  .status.error{background:#fdecec;color:#c62f2f;border-color:#f8cfcf;}
+  .status .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);animation:pulse 1.1s infinite ease-in-out;flex-shrink:0;}
+  .status.error .dot{background:#c62f2f;}
+  @keyframes pulse{0%,100%{opacity:.3;}50%{opacity:1;}}
+
+  #result{display:none;}
+
+  /* profile card, roblox profile page style */
+  .profile-card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:22px;margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .profile-top{display:flex;gap:18px;}
+  .profile-top img{
+    width:100px;height:100px;border-radius:10px;background:#eef0f1;
+    object-fit:cover;border:1px solid var(--line);flex-shrink:0;
+  }
+  .profile-meta{min-width:0;flex:1;}
+  .profile-meta h1{margin:0 0 2px;font-size:21px;font-weight:800;color:var(--text);}
+  .username{color:var(--text-faint);font-size:14px;font-weight:600;margin-bottom:6px;}
+  .joined{font-size:12px;color:var(--text-faint);margin-bottom:10px;}
+  .description{margin:0;font-size:13.5px;color:var(--text-dim);line-height:1.55;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+
+  /* stat row, like roblox's Friends/Followers/Following row */
+  .stat-row{
+    display:flex;border-top:1px solid var(--line);margin-top:18px;padding-top:14px;
+  }
+  .stat-item{flex:1;text-align:center;cursor:default;}
+  .stat-item + .stat-item{border-left:1px solid var(--line);}
+  .stat-value{font-size:19px;font-weight:800;color:var(--text);}
+  .stat-label{font-size:11.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;font-weight:700;}
+
+  /* section card, roblox style section header */
+  .section-card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .section-header{
+    padding:14px 20px;border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;justify-content:space-between;
+  }
+  .section-header h2{margin:0;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--text-dim);text-transform:uppercase;}
+  .section-header .note{font-size:11.5px;color:var(--text-faint);font-weight:600;}
+  .section-body{padding:18px 20px;}
+
+  /* rap stat grid inside section */
+  .rap-grid{display:flex;gap:16px;flex-wrap:wrap;}
+  .rap-box{
+    flex:1;min-width:130px;background:#fafbfb;border:1px solid var(--line);
+    border-radius:10px;padding:14px;text-align:center;
+  }
+  .rap-box .rap-label{font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;}
+  .rap-box .rap-value{font-size:20px;font-weight:800;color:var(--green);}
+  .rap-box.dim .rap-value{color:var(--text);}
+  .rap-box .rap-value.warn{color:#e0952f;}
+  .rap-box.value .rap-value{color:var(--blue-dark);}
+
+  .holdings-list{display:flex;flex-direction:column;}
+  .holding-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);}
+  .holding-row:first-child{border-top:none;}
+  .holding-row img{width:42px;height:42px;border-radius:8px;background:#eef0f1;flex-shrink:0;object-fit:cover;border:1px solid var(--line);}
+  .holding-name{flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .holding-bar-wrap{flex:1;max-width:120px;height:6px;background:#eef0f1;border-radius:3px;overflow:hidden;display:none;}
+  .holding-bar{height:100%;background:linear-gradient(90deg,var(--blue),#7fd0ff);}
+  .holding-nums{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;min-width:80px;}
+  .holding-value{font-size:13.5px;font-weight:800;color:var(--blue-dark);}
+  .holding-rap{font-size:11px;color:var(--text-faint);font-weight:600;}
+  @media (min-width:560px){.holding-bar-wrap{display:block;}}
+
+  .footnote{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--text-faint);line-height:1.6;}
+  .footnote b{color:var(--text-dim);}
+
+  @media (max-width:560px){
+    .profile-top{flex-direction:column;align-items:flex-start;}
+    .rap-grid{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="logo">R</div>
+  <div class="wordmark">Account<span>Explorer</span></div>
+  <div class="tagline">consulta de perfiles públicos</div>
+</div>
+
+<div class="app">
+
+  <div class="search-card">
+    <label for="uid">ID de usuario Roblox</label>
+    <div class="input-row">
+      <input id="uid" inputmode="numeric" placeholder="ej. 1" autocomplete="off" />
+      <button id="go">Buscar</button>
+    </div>
+    <p class="hint">Introduce el ID numérico de la cuenta (no el nombre de usuario). Lo encuentras en la URL del perfil: roblox.com/users/<b>ID</b>/profile</p>
+  </div>
+
+  <div id="status" class="status" hidden></div>
+
+  <div id="result">
+    <div class="profile-card">
+      <div class="profile-top">
+        <img id="avatar" alt="Avatar" />
+        <div class="profile-meta">
+          <h1 id="displayName">—</h1>
+          <div class="username" id="username">—</div>
+          <div class="joined" id="joined">—</div>
+          <p class="description" id="description"></p>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-item">
+          <div class="stat-value" id="friendsCount">–</div>
+          <div class="stat-label">Amigos</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="followersCount">–</div>
+          <div class="stat-label">Seguidores</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="followingCount">–</div>
+          <div class="stat-label">Siguiendo</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-header"><h2>Valor de inventario</h2><span class="note" id="valueSourceNote">RAP oficial + Value de Rolimons</span></div>
+      <div class="section-body">
+        <div class="rap-grid">
+          <div class="rap-box">
+            <div class="rap-label">RAP total</div>
+            <div class="rap-value" id="rapTotal">–</div>
+          </div>
+          <div class="rap-box value">
+            <div class="rap-label">Value total</div>
+            <div class="rap-value" id="valueTotal">–</div>
+          </div>
+          <div class="rap-box dim">
+            <div class="rap-label">Coleccionables</div>
+            <div class="rap-value" id="itemCount">–</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card" id="holdingsSection">
+      <div class="section-header"><h2>Top holdings</h2><span class="note">por Value individual</span></div>
+      <div class="section-body">
+        <div class="holdings-list" id="holdingsList"></div>
+        <div class="footnote">
+          El <b>RAP</b> (Recent Average Price) viene directamente de la API oficial de Roblox. El <b>Value</b> se calcula cruzando el inventario real de la cuenta con la base de datos pública de precios de <b>Rolimons</b>, así que puede no coincidir exactamente con su web si su base de datos está desactualizada, y aparece como "N/D" en objetos que Rolimons todavía no ha valorado.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const statusEl = $('status');
+const resultEl = $('result');
+
+function setStatus(msg, isError){
+  statusEl.hidden = false;
+  statusEl.classList.toggle('error', !!isError);
+  statusEl.innerHTML = isError ? msg : `<span class="dot"></span>${msg}`;
+}
+function clearStatus(){ statusEl.hidden = true; statusEl.innerHTML=''; }
+
+function fmtNumber(n){
+  if (n === null || n === undefined) return '–';
+  return new Intl.NumberFormat('es-ES').format(Math.round(n));
+}
+
+// Roblox's and Rolimons' public APIs generally don't send CORS headers
+// for arbitrary browser origins, so we try a direct fetch first and fall
+// back to a read-only CORS proxy if that fails.
+async function proxyGet(url){
+  try{
+    const r = await fetch(url, { headers: { 'Accept':'application/json' } });
+    if (r.ok) return await r.json();
+  }catch(e){ /* fall through to proxy */ }
+
+  const proxied = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+  const r2 = await fetch(proxied);
+  if (!r2.ok) throw new Error('No se pudo contactar con la API.');
+  return await r2.json();
+}
+const robloxGet = proxyGet;
+
+// Rolimons' item catalog: one big list of every tracked limited with its
+// current RAP and Value. We cache it for a few minutes so repeated
+// look-ups don't hammer their rate limit (they allow ~1 request/min).
+let rolimonsCatalogCache = { data: null, ts: 0 };
+async function getRolimonsCatalog(){
+  const FIVE_MIN = 5 * 60 * 1000;
+  if (rolimonsCatalogCache.data && (Date.now() - rolimonsCatalogCache.ts) < FIVE_MIN){
+    return rolimonsCatalogCache.data;
+  }
+  const data = await proxyGet('https://api.rolimons.com/items/v1/itemdetails');
+  if (!data.success) throw new Error('Rolimons no devolvió datos.');
+  // items: { assetId: [Name, Acronym, Rap, Value, DefaultValue, Demand, Trend, Projected, Hyped, Rare] }
+  const catalog = {};
+  Object.entries(data.items).forEach(([assetId, arr]) => {
+    catalog[assetId] = { name: arr[0], rap: arr[2], value: arr[3], defaultValue: arr[4] };
+  });
+  rolimonsCatalogCache = { data: catalog, ts: Date.now() };
+  return catalog;
+}
+
+async function fetchCollectiblesTotal(userId){
+  let cursor = '';
+  let total = 0;
+  let items = [];
+  let page = 0;
+  const MAX_PAGES = 25; // safety cap (~2500 items)
+  try{
+    do{
+      const url = `https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Asc${cursor ? '&cursor='+cursor : ''}`;
+      const data = await robloxGet(url);
+      if (data.errors && data.errors.length){
+        return { total: null, items: [], privateInventory: true };
+      }
+      const pageItems = data.data || [];
+      items = items.concat(pageItems);
+      total += pageItems.reduce((sum, it) => sum + (it.recentAveragePrice || 0), 0);
+      cursor = data.nextPageCursor;
+      page++;
+    } while(cursor && page < MAX_PAGES);
+    return { total, items, privateInventory: false };
+  }catch(e){
+    return { total: null, items: [], privateInventory: true };
+  }
+}
+
+async function fetchItemThumbnails(assetIds){
+  if (!assetIds.length) return {};
+  const url = `https://thumbnails.roblox.com/v1/assets?assetIds=${assetIds.join(',')}&size=150x150&format=Png`;
+  try{
+    const data = await robloxGet(url);
+    const map = {};
+    (data.data || []).forEach(d => { map[d.targetId] = d.imageUrl; });
+    return map;
+  }catch(e){ return {}; }
+}
+
+async function lookup(userId){
+  clearStatus();
+  resultEl.style.display = 'none';
+  setStatus('Consultando perfil…');
+
+  let userInfo;
+  try{
+    userInfo = await robloxGet(`https://users.roblox.com/v1/users/${userId}`);
+    if (userInfo.errors) throw new Error('not found');
+  }catch(e){
+    setStatus('No se encontró ninguna cuenta con ese ID, o la API de Roblox no respondió. Comprueba el ID e inténtalo de nuevo.', true);
+    return;
+  }
+
+  $('displayName').textContent = userInfo.displayName || userInfo.name;
+  $('username').textContent = '@' + userInfo.name;
+  $('description').textContent = userInfo.description || 'Sin descripción.';
+  if (userInfo.created){
+    const d = new Date(userInfo.created);
+    $('joined').textContent = 'Cuenta creada el ' + d.toLocaleDateString('es-ES', { year:'numeric', month:'long', day:'numeric' });
+  } else {
+    $('joined').textContent = '';
+  }
+
+  setStatus('Cargando avatar y estadísticas sociales…');
+
+  const [avatarRes, friendsRes, followersRes, followingRes] = await Promise.allSettled([
+    robloxGet(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`),
+    robloxGet(`https://friends.roblox.com/v1/users/${userId}/friends/count`),
+    robloxGet(`https://friends.roblox.com/v1/users/${userId}/followers/count`),
+    robloxGet(`https://friends.roblox.com/v1/users/${userId}/followings/count`)
+  ]);
+
+  if (avatarRes.status === 'fulfilled' && avatarRes.value.data && avatarRes.value.data[0]){
+    $('avatar').src = avatarRes.value.data[0].imageUrl;
+  }
+  $('friendsCount').textContent = friendsRes.status === 'fulfilled' ? fmtNumber(friendsRes.value.count) : '–';
+  $('followersCount').textContent = followersRes.status === 'fulfilled' ? fmtNumber(followersRes.value.count) : '–';
+  $('followingCount').textContent = followingRes.status === 'fulfilled' ? fmtNumber(followingRes.value.count) : '–';
+
+  resultEl.style.display = 'block';
+  setStatus('Calculando RAP a partir del inventario de objetos limitados (puede tardar unos segundos)…');
+
+  const { total, items, privateInventory } = await fetchCollectiblesTotal(userId);
+
+  if (privateInventory){
+    $('rapTotal').textContent = 'N/D';
+    $('valueTotal').textContent = 'N/D';
+    $('itemCount').textContent = '–';
+    $('holdingsSection').style.display = 'none';
+    clearStatus();
+    return;
+  }
+
+  $('rapTotal').textContent = fmtNumber(total) + ' R$';
+  $('itemCount').textContent = fmtNumber(items.length);
+
+  // Cross-reference with Rolimons' price catalog to get the "Value" figure.
+  setStatus('Cruzando el inventario con la base de datos de Rolimons para calcular el Value…');
+  let catalog = null;
+  try{
+    catalog = await getRolimonsCatalog();
+  }catch(e){ /* Rolimons unreachable or rate-limited; we degrade gracefully below */ }
+
+  let itemsWithValue = items.map(it => {
+    const entry = catalog ? catalog[it.assetId] : null;
+    let value;
+    if (entry){
+      value = entry.value !== -1 ? entry.value : entry.rap;
+    } else {
+      value = null; // not tracked by Rolimons
+    }
+    return { ...it, rolimonsValue: value };
+  });
+
+  if (catalog){
+    const totalValue = itemsWithValue.reduce((sum, it) => sum + (it.rolimonsValue ?? it.recentAveragePrice ?? 0), 0);
+    $('valueTotal').textContent = fmtNumber(totalValue) + ' R$';
+  } else {
+    $('valueTotal').textContent = 'N/D';
+    $('valueSourceNote').textContent = 'Rolimons no disponible ahora mismo';
+  }
+
+  const top = [...itemsWithValue].sort((a,b) => (b.rolimonsValue ?? b.recentAveragePrice ?? 0) - (a.rolimonsValue ?? a.recentAveragePrice ?? 0)).slice(0, 5);
+  if (top.length){
+    $('holdingsSection').style.display = 'block';
+    const thumbs = await fetchItemThumbnails(top.map(t => t.assetId));
+    const maxVal = (top[0].rolimonsValue ?? top[0].recentAveragePrice) || 1;
+    $('holdingsList').innerHTML = top.map(it => {
+      const val = it.rolimonsValue !== null && it.rolimonsValue !== undefined ? it.rolimonsValue : it.recentAveragePrice;
+      const valLabel = it.rolimonsValue !== null && it.rolimonsValue !== undefined ? fmtNumber(val) + ' R$' : 'N/D';
+      return `
+        <div class="holding-row">
+          <img src="${thumbs[it.assetId] || ''}" alt="" />
+          <div class="holding-name">${(it.name||'Objeto').replace(/</g,'&lt;')}</div>
+          <div class="holding-bar-wrap"><div class="holding-bar" style="width:${Math.max(4, (val||0)/maxVal*100)}%"></div></div>
+          <div class="holding-nums">
+            <div class="holding-value">${valLabel}</div>
+            <div class="holding-rap">RAP: ${fmtNumber(it.recentAveragePrice)} R$</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    $('holdingsSection').style.display = 'none';
+  }
+
+  clearStatus();
+}
+
+$('go').addEventListener('click', () => {
+  const val = $('uid').value.trim();
+  if (!/^\d+$/.test(val)){
+    setStatus('Introduce un ID numérico válido (por ejemplo, 1).', true);
+    return;
+  }
+  lookup(val);
+});
+$('uid').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('go').click();
+});
+</script>
+</body>
+</html>
